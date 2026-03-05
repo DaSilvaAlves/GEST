@@ -1,42 +1,62 @@
-import React, { useState, createContext, useContext } from 'react';
-import { Task } from './types/index';
-import Feature1 from './features/feature-1';
-import Feature2 from './features/feature-2';
-import Feature3 from './features/feature-3';
+import { useState, createContext, useContext } from 'react';
+import type { Task } from './types/index';
+import TaskForm from './features/feature-1';
+import TaskList from './features/feature-2';
+import TaskStats from './features/feature-3';
 import './styles/theme.css';
 
-interface TaskContext {
+interface TaskContextType {
   tasks: Task[];
-  createTask: (task: Task) => void;
-  updateTask: (id: number, task: Task) => void  deleteTask: (id: number) => void;
+  createTask: (task: Omit<Task, 'id' | 'createdAt'>) => void;
+  updateTask: (id: number, updates: Partial<Task>) => void;
+  deleteTask: (id: number) => void;
+  toggleComplete: (id: number) => void;
 }
 
-const TaskContext = createContext<TaskContext | null>(null);
+export const TaskContext = createContext<TaskContextType | null>(null);
 
-const App = () => {
+export function useTaskContext() {
+  const ctx = useContext(TaskContext);
+  if (!ctx) throw new Error('useTaskContext must be used inside TaskContext.Provider');
+  return ctx;
+}
+
+export default function App() {
   const [tasks, setTasks] = useState<Task[]>([]);
 
-  const createTask = (task: Task) => {
-    setTasks([...tasks, task]);
-  };
+  function createTask(data: Omit<Task, 'id' | 'createdAt'>) {
+    setTasks(prev => [...prev, { ...data, id: Date.now(), createdAt: new Date().toISOString() }]);
+  }
 
-  const updateTask = (id: number, task: Task) => {
-    setTasks(tasks.map((t) => (t.id === id ? task : t)));
-  };
+  function updateTask(id: number, updates: Partial<Task>) {
+    setTasks(prev => prev.map(t => (t.id === id ? { ...t, ...updates } : t)));
+  }
 
-  const deleteTask = (id:) => {
-    setTasks(tasks.filter((t) => t.id !== id));
-  };
+  function deleteTask(id: number) {
+    setTasks(prev => prev.filter(t => t.id !== id));
+  }
+
+  function toggleComplete(id: number) {
+    setTasks(prev => prev.map(t => (t.id === id ? { ...t, completed: !t.completed } : t)));
+  }
 
   return (
-    <TaskContext.Provider value={{ tasks, createTask, updateTask, deleteTask }}>
-      <div className="grid">
-        <Feature1 />
-        <Feature2 />
-        <Feature3 />
+    <TaskContext.Provider value={{ tasks, createTask, updateTask, deleteTask, toggleComplete }}>
+      <div className="app">
+        <header className="app-header">
+          <h1>Gestor de Tarefas</h1>
+          <p>Organiza e prioriza o teu trabalho</p>
+        </header>
+        <main className="app-main">
+          <aside className="sidebar">
+            <TaskForm />
+            <TaskStats />
+          </aside>
+          <section className="content">
+            <TaskList />
+          </section>
+        </main>
       </div>
     </TaskContext.Provider>
   );
-};
-
-export default App;
+}
