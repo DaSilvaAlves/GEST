@@ -1,52 +1,82 @@
-import React, { useState } from 'react';
-import { Task } from '../types/index';
-import { Button } from '../components/ui/Button';
+import { useState } from 'react';
+import { useTaskContext } from '../../App';
+import type { Task } from '../../types/index';
 
-const Feature2 = () => {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [id, setId] = useState(0);
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [priority, setPriority] = useState('alta');
+const PRIORITY_LABELS = { alta: '🔴 Alta', média: '🟡 Média', baixa: '🟢 Baixa' };
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const task: Task = {
-      id,
-      title,
-      description,
-      priority,
-      completed: false,
-    };
-    // Update task logic
-    console.log(task);
-  };
+export default function TaskList() {
+  const { tasks, deleteTask, toggleComplete, updateTask } = useTaskContext();
+  const [filter, setFilter] = useState<'todas' | 'ativas' | 'concluídas'>('todas');
+  const [editId, setEditId] = useState<number | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+
+  const filtered = tasks.filter(t =>
+    filter === 'todas' ? true : filter === 'ativas' ? !t.completed : t.completed
+  );
+
+  function startEdit(task: Task) {
+    setEditId(task.id);
+    setEditTitle(task.title);
+  }
+
+  function saveEdit(id: number) {
+    if (editTitle.trim()) updateTask(id, { title: editTitle.trim() });
+    setEditId(null);
+  }
+
+  if (tasks.length === 0) {
+    return (
+      <div className="empty-state">
+        <div className="empty-icon">📋</div>
+        <h3>Nenhuma tarefa ainda</h3>
+        <p>Cria a tua primeira tarefa no painel ao lado.</p>
+      </div>
+    );
+  }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <label>
-        ID:
-        <input="number" value={id} onChange={(event) => setId(Number(event.target.value))} />
-      </label>
-      <label>
-        Título:
-        <input type="text" value={title} onChange={(event) => setTitle(event.target.value)} />
-      </label>
-      <label>
-        Descrição:
-        <textarea value={description} onChange={(event) => setDescription(event.target.value)} />
-      </label>
-      <label>
-        Prioridade:
-        <select value={priority} onChange={(event) => setPriority(event.target.value)}>
-          <option value="alta">Alta</option>
-          <option value="média">Média</option>
-          <option value="baixa">Baixa</option>
-        </select>
-      </label>
-      <Button type="submit">Atualizar Tarefa</Button>
-    </form>
+    <div className="task-list">
+      <div className="list-header">
+        <h2>Tarefas ({tasks.length})</h2>
+        <div className="filter-tabs">
+          {(['todas', 'ativas', 'concluídas'] as const).map(f => (
+            <button key={f} className={`filter-tab ${filter === f ? 'active' : ''}`} onClick={() => setFilter(f)}>
+              {f.charAt(0).toUpperCase() + f.slice(1)}
+            </button>
+          ))}
+        </div>
+      </div>
+      <ul className="tasks">
+        {filtered.map(task => (
+          <li key={task.id} className={`task-item ${task.completed ? 'completed' : ''}`}>
+            <button className="task-check" onClick={() => toggleComplete(task.id)} aria-label="Alternar conclusão">
+              {task.completed ? '✓' : '○'}
+            </button>
+            <div className="task-body">
+              {editId === task.id ? (
+                <input
+                  className="edit-input"
+                  value={editTitle}
+                  onChange={e => setEditTitle(e.target.value)}
+                  onBlur={() => saveEdit(task.id)}
+                  onKeyDown={e => e.key === 'Enter' && saveEdit(task.id)}
+                  autoFocus
+                />
+              ) : (
+                <span className="task-title" onDoubleClick={() => startEdit(task)}>{task.title}</span>
+              )}
+              {task.description && <p className="task-desc">{task.description}</p>}
+              <span className={`priority-badge priority-${task.priority}`}>
+                {PRIORITY_LABELS[task.priority]}
+              </span>
+            </div>
+            <button className="task-delete" onClick={() => deleteTask(task.id)} aria-label="Eliminar tarefa">✕</button>
+          </li>
+        ))}
+      </ul>
+      {filtered.length === 0 && (
+        <p className="empty-filter">Nenhuma tarefa {filter === 'ativas' ? 'ativa' : 'concluída'}.</p>
+      )}
+    </div>
   );
-};
-
-export default Feature2;
+}
