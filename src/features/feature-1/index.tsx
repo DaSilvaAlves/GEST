@@ -1,45 +1,60 @@
-import React, { useState } from 'react';
-import { Task } from '../types/index';
-import { Button } from '../components/Button';
+import { useState } from 'react';
+import { useTaskContext } from '../../App';
 
-const Feature1 = () => {
+export default function TaskForm() {
+  const { createTask } = useTaskContext();
   const [title, setTitle] = useState('');
-  const [description, setDescription] =('');
-  const [priority, setPriority] = useState('alta');
+  const [description, setDescription] = useState('');
+  const [priority, setPriority] = useState<'alta' | 'média' | 'baixa'>('alta');
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const task: Task = {
-      id: Date.now(),
-      title,
-      description,
-      priority,
-      completed: false,
-    };
-    // Create task logic
-    console.log(task);
-  };
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!title.trim()) return;
+    createTask({ title: title.trim(), description: description.trim(), priority, completed: false });
+    setTitle('');
+    setDescription('');
+    setPriority('alta');
+  }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <label>
-        Título:
-        <input type="text" value={title} onChangeevent) => setTitle(event.target.value)} />
-      </label>
-      <label>
-        Descrição:
-        <textarea valuedescription} onChange={(event) => setDescription(event.target.value)}      </label>
-      <label>
-        Prioridade:
-        < value={priority} onChange={(event) => setPriority(event.target.value)}>
-          <option value="alta">Alta</option>
-          <option value="média">Média</option>
-          <option value="baixa">Baixa</option>
+    <form className="task-form" onSubmit={handleSubmit}>
+      <h2>Nova Tarefa</h2>
+      <div className="form-group">
+        <label htmlFor="title">Título *</label>
+        <input
+          id="title"
+          type="text"
+          value={title}
+          onChange={e => setTitle(e.target.value)}
+          placeholder="O que precisas de fazer?"
+          required
+        />
+      </div>
+      <div className="form-group">
+        <label htmlFor="description">Descrição</label>
+        <textarea
+          id="description"
+          value={description}
+          onChange={e => setDescription(e.target.value)}
+          placeholder="Detalhes adicionais..."
+          rows={3}
+        />
+      </div>
+      <div className="form-group">
+        <label htmlFor="priority">Prioridade</label>
+        <select
+          id="priority"
+          value={priority}
+          onChange={e => setPriority(e.target.value as 'alta' | 'média' | 'baixa')}
+        >
+          <option value="alta">🔴 Alta</option>
+          <option value="média">🟡 Média</option>
+          <option value="baixa">🟢 Baixa</option>
         </select>
-      </label>
-      <Button type="submit">Criar Tarefa</Button>
+      </div>
+      <button type="submit" className="btn-primary" disabled={!title.trim()}>
+        + Criar Tarefa
+      </button>
     </form>
   );
-};
-
-export default Feature1;
+}
